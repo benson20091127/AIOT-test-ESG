@@ -1,0 +1,287 @@
+<html><head><base href="https://streamlit.app/linear-regression/"><title>Avant-Garde Linear Regression Explorer</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&display=swap');
+    
+    body {
+        font-family: 'Syncopate', sans-serif;
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        color: #e0e0ff;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+    }
+    .container {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 40px;
+    }
+    h1 {
+        color: #ff00ff;
+        text-align: center;
+        font-size: 3.5em;
+        text-shadow: 0 0 15px rgba(255,0,255,0.7);
+        margin-bottom: 40px;
+        letter-spacing: 3px;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 40px;
+    }
+    .controls {
+        background-color: rgba(30,30,50,0.8);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 0 30px rgba(255,0,255,0.3);
+    }
+    .slider {
+        margin: 40px 0;
+    }
+    .slider-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    input[type="range"] {
+        width: 100%;
+        background: #2d3748;
+        -webkit-appearance: none;
+        outline: none;
+        opacity: 0.9;
+        transition: opacity .2s;
+        border-radius: 15px;
+        height: 15px;
+    }
+    input[type="range"]:hover {
+        opacity: 1;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 30px;
+        height: 30px;
+        background: #ff00ff;
+        cursor: pointer;
+        border-radius: 50%;
+        box-shadow: 0 0 15px rgba(255,0,255,0.8);
+    }
+    .plot {
+        background-color: rgba(30,30,50,0.8);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 0 30px rgba(255,0,255,0.3);
+    }
+    .info-panel {
+        background-color: rgba(40,40,60,0.8);
+        border-radius: 20px;
+        padding: 30px;
+        margin-top: 40px;
+        box-shadow: 0 0 30px rgba(255,0,255,0.3);
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+    .info-item {
+        background-color: rgba(60,60,80,0.8);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.4s ease;
+    }
+    .info-item:hover {
+        transform: scale(1.05) rotate(2deg);
+        box-shadow: 0 0 20px rgba(255,0,255,0.7);
+    }
+    .info-label {
+        font-size: 1em;
+        color: #a0aec0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .info-value {
+        font-size: 1.6em;
+        font-weight: bold;
+        color: #ff00ff;
+        text-shadow: 0 0 10px rgba(255,0,255,0.7);
+    }
+    #regressionPlot {
+        border: 3px solid #ff00ff;
+        border-radius: 15px;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Avant-Garde Linear Regression Explorer</h1>
+        
+        <div class="grid">
+            <div class="controls">
+                <div class="slider">
+                    <div class="slider-label">
+                        <span>Slope (a)</span>
+                        <span id="slopeValue">1</span>
+                    </div>
+                    <input type="range" min="-50" max="50" value="1" step="0.1" id="slopeSlider">
+                </div>
+                
+                <div class="slider">
+                    <div class="slider-label">
+                        <span>Number of Points (n)</span>
+                        <span id="pointsValue">500</span>
+                    </div>
+                    <input type="range" min="100" max="1000" value="500" step="10" id="pointsSlider">
+                </div>
+                
+                <div class="slider">
+                    <div class="slider-label">
+                        <span>Noise factor (c)</span>
+                        <span id="noiseValue">20</span>
+                    </div>
+                    <input type="range" min="10" max="100" value="20" step="1" id="noiseSlider">
+                </div>
+            </div>
+            
+            <div class="plot">
+                <svg id="regressionPlot" width="100%" height="700"></svg>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Estimated Slope</div>
+                    <div class="info-value" id="estimatedSlope">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Estimated Intercept</div>
+                    <div class="info-value" id="estimatedIntercept">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">R-squared</div>
+                    <div class="info-value" id="rSquared">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Mean Squared Error</div>
+                    <div class="info-value" id="mse">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/regression/2.0.1/regression.min.js"></script>
+    <script>
+        const margin = {top: 20, right: 20, bottom: 30, left: 50};
+        const width = document.querySelector('.plot').clientWidth - margin.left - margin.right;
+        const height = 700 - margin.top - margin.bottom;
+
+        const svg = d3.select("#regressionPlot")
+            .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleLinear().range([0, width]);
+        const y = d3.scaleLinear().range([height, 0]);
+
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .attr("class", "x-axis");
+
+        svg.append("g")
+            .attr("class", "y-axis");
+
+        function updatePlot() {
+            const a = parseFloat(document.getElementById("slopeSlider").value);
+            const n = parseInt(document.getElementById("pointsSlider").value);
+            const c = parseFloat(document.getElementById("noiseSlider").value);
+
+            const data = Array.from({length: n}, () => {
+                const x = Math.random() * 20 - 10;
+                const y = a * x + c * d3.randomNormal()();
+                return [x, y];
+            });
+
+            const result = regression.linear(data);
+            const slope = result.equation[0];
+            const intercept = result.equation[1];
+            const rSquared = result.r2;
+
+            x.domain(d3.extent(data, d => d[0]));
+            y.domain(d3.extent(data, d => d[1]));
+
+            svg.select(".x-axis")
+              .transition().duration(800)
+              .call(d3.axisBottom(x).tickSize(-height).tickPadding(10));
+            svg.select(".y-axis")
+              .transition().duration(800)
+              .call(d3.axisLeft(y).tickSize(-width).tickPadding(10));
+
+            svg.selectAll(".tick line")
+              .attr("stroke", "#ffffff20");
+
+            const updateCircles = svg.selectAll("circle")
+                .data(data);
+
+            updateCircles.enter()
+                .append("circle")
+                .merge(updateCircles)
+                .transition().duration(800)
+                .attr("cx", d => x(d[0]))
+                .attr("cy", d => y(d[1]))
+                .attr("r", 4)
+                .attr("fill", "#00ffff")
+                .attr("opacity", 0.7);
+
+            updateCircles.exit().remove();
+
+            const line = d3.line()
+                .x(d => x(d[0]))
+                .y(d => y(result.predict(d[0])[1]));
+
+            svg.selectAll(".regression-line").remove();
+            svg.append("path")
+                .datum(x.domain().map(x => [x]))
+                .attr("class", "regression-line")
+                .attr("fill", "none")
+                .attr("stroke", "#ff00ff")
+                .attr("stroke-width", 3)
+                .attr("d", line)
+                .style("filter", "drop-shadow(0 0 5px rgba(255,0,255,0.7))");
+
+            document.getElementById("estimatedSlope").textContent = slope.toFixed(4);
+            document.getElementById("estimatedIntercept").textContent = intercept.toFixed(4);
+            document.getElementById("rSquared").textContent = rSquared.toFixed(4);
+            
+            const mse = data.reduce((sum, point) => {
+                const pred = result.predict(point[0])[1];
+                return sum + Math.pow(point[1] - pred, 2);
+            }, 0) / data.length;
+            document.getElementById("mse").textContent = mse.toFixed(4);
+        }
+
+        document.getElementById("slopeSlider").oninput = function() {
+            document.getElementById("slopeValue").textContent = this.value;
+            updatePlot();
+        }
+
+        document.getElementById("pointsSlider").oninput = function() {
+            document.getElementById("pointsValue").textContent = this.value;
+            updatePlot();
+        }
+
+        document.getElementById("noiseSlider").oninput = function() {
+            document.getElementById("noiseValue").textContent = this.value;
+            updatePlot();
+        }
+
+        updatePlot();
+
+        window.addEventListener('resize', updatePlot);
+    </script>
+</body>
+</html>
